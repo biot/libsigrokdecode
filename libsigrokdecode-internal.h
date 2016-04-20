@@ -37,6 +37,7 @@ typedef struct {
 	unsigned int itercnt;
 	uint8_t *inbuf;
 	uint64_t inbuflen;
+	uint8_t *prev_sample;
 	PyObject *sample;
 } srd_logic;
 

@@ -33,19 +33,35 @@ static PyObject *srd_logic_iternext(PyObject *self)
 	srd_logic *logic;
 	PyObject *py_samplenum, *py_samples;
 	uint8_t *sample_pos, sample;
+	unsigned int max_itercnt;
 	int byte_offset, bit_offset, i;
 
 	logic = (srd_logic *)self;
-	if (logic->itercnt >= logic->inbuflen / logic->di->data_unitsize) {
+	max_itercnt = logic->inbuflen / logic->di->data_unitsize;
+	if (logic->itercnt >= max_itercnt) {
 		/* End iteration loop. */
 		return NULL;
 	}
+
+	sample_pos = logic->inbuf + logic->itercnt * logic->di->data_unitsize;
+	if (logic->itercnt) {
+		/* Find next different sample. */
+		while (!memcmp(logic->prev_sample, sample_pos,
+				logic->di->data_unitsize)) {
+			logic->itercnt++;
+			if (logic->itercnt >= max_itercnt) {
+				/* End iteration loop. */
+				return NULL;
+			}
+			sample_pos += logic->di->data_unitsize;
+		}
+	}
+	memcpy(logic->prev_sample, sample_pos, logic->di->data_unitsize);
 
 	/*
 	 * Convert the bit-packed sample to an array of bytes, with only 0x01
 	 * and 0x00 values, so the PD doesn't need to do any bitshifting.
 	 */
-	sample_pos = logic->inbuf + logic->itercnt * logic->di->data_unitsize;
 	for (i = 0; i < logic->di->dec_num_channels; i++) {
 		/* A channelmap value of -1 means "unused optional channel". */
 		if (logic->di->dec_channelmap[i] == -1) {

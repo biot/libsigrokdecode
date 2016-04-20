@@ -573,7 +573,6 @@ SRD_PRIV int srd_inst_decode(const struct srd_decoder_inst *di,
 	 * will fill one sample into this object.
 	 */
 	logic = PyObject_New(srd_logic, (PyTypeObject *)srd_logic_type);
-	Py_INCREF(logic);
 	logic->di = (struct srd_decoder_inst *)di;
 	logic->start_samplenum = start_samplenum;
 	logic->itercnt = 0;
@@ -581,15 +580,19 @@ SRD_PRIV int srd_inst_decode(const struct srd_decoder_inst *di,
 	logic->inbuflen = inbuflen;
 	logic->sample = PyList_New(2);
 	Py_INCREF(logic->sample);
+	logic->prev_sample = malloc(logic->di->data_unitsize);
 
-	Py_IncRef(di->py_inst);
+	Py_INCREF(di->py_inst);
+	Py_INCREF(logic);
 	if (!(py_res = PyObject_CallMethod(di->py_inst, "decode",
 			"KKO", start_samplenum, end_samplenum, logic))) {
 		srd_exception_catch("Protocol decoder instance %s",
 				di->inst_id);
 		return SRD_ERR_PYTHON;
 	}
-	Py_DecRef(py_res);
+	Py_DECREF(py_res);
+	free(logic->prev_sample);
+	Py_DECREF(logic->sample);
 
 	return SRD_OK;
 }
