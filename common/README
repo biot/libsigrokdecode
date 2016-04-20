@@ -1,0 +1,2 @@
+This directory contains modules available to all decoders. The path is
+automatically added to libsigrokdecode before the protocol decoders run.
